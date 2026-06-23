@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
       id: { not: id },
       lastSeen: { gte: staleCutoff },
     },
-    select: { id: true, lat: true, lng: true, busy: true },
+    select: { id: true, lat: true, lng: true, busy: true, mood: true },
   });
 
   // 4) Drain this user's mailbox: read, then delete exactly what we read so a
@@ -63,11 +63,12 @@ export async function GET(request: NextRequest) {
   }
 
   const response: PollResponse = {
-    peers: peers.map((p: { id: string; lat: number; lng: number; busy: boolean }) => ({
+    peers: peers.map((p: { id: string; lat: number; lng: number; busy: boolean; mood: string | null }) => ({
       id: p.id,
       lat: p.lat,
       lng: p.lng,
       busy: p.busy,
+      mood: p.mood ?? "👋",
     })),
     signals: inbox.map((s: { id: string; fromId: string; toId: string; type: string; payload: string | null; createdAt: Date }) => ({
       id: s.id,

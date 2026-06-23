@@ -8,6 +8,7 @@ export type PeerControl =
 interface PeerCallbacks {
   onSignal: (type: DescType, payload: string) => void;
   onChat: (text: string) => void;
+  onTyping: (isTyping: boolean) => void;
   onControl: (ctrl: PeerControl) => void;
   onRemoteStream: (stream: MediaStream | null) => void;
   onConnectionState: (state: RTCPeerConnectionState) => void;
@@ -80,8 +81,10 @@ export class PeerSession {
           this.cb.onChat(msg.text);
         } else if (msg.t === "ctrl" && typeof msg.ctrl === "string") {
           this.cb.onControl(msg.ctrl as PeerControl);
+        } else if (msg.t === "typing" && typeof msg.isTyping === "boolean") {
+          this.cb.onTyping(msg.isTyping);
         }
-      } catch {}
+      } catch { }
     };
   }
 
@@ -96,7 +99,7 @@ export class PeerSession {
       }
       try {
         await this.pc.addIceCandidate(data);
-      } catch {}
+      } catch { }
       return;
     }
 
@@ -124,12 +127,16 @@ export class PeerSession {
     for (const candidate of queued) {
       try {
         await this.pc.addIceCandidate(candidate);
-      } catch {}
+      } catch { }
     }
   }
 
   sendChat(text: string) {
     this.safeSend({ t: "chat", text });
+  }
+
+  sendTyping(isTyping: boolean) {
+    this.safeSend({ t: "typing", isTyping });
   }
 
   sendControl(ctrl: PeerControl) {
@@ -162,7 +169,7 @@ export class PeerSession {
         if (sender.track) {
           try {
             this.pc.removeTrack(sender);
-          } catch {}
+          } catch { }
         }
       }
       this.localStream = null;
@@ -176,10 +183,10 @@ export class PeerSession {
     if (this.dc) {
       try {
         this.dc.close();
-      } catch {}
+      } catch { }
     }
     try {
       this.pc.close();
-    } catch {}
+    } catch { }
   }
 }

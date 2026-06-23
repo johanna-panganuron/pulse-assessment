@@ -27,6 +27,7 @@ export default function Home() {
   const [sessionId] = useState(() => crypto.randomUUID());
   const [peers, setPeers] = useState<PeerDot[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [strangerTyping, setStrangerTyping] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
@@ -79,6 +80,7 @@ export default function Home() {
         void sendSignal(sessionId, peerId, type, payload);
       },
       onChat: (text) => addMessage(false, text),
+      onTyping: (isTyping) => setStrangerTyping(isTyping),
       onControl: (ctrl) => handleControl(ctrl),
       onRemoteStream: (stream) => setRemoteStream(stream),
       onConnectionState: (state) => {
@@ -281,7 +283,7 @@ export default function Home() {
         if (!active) return;
         setPeers(data.peers);
         for (const s of data.signals) processSignalRef.current(s);
-      } catch {}
+      } catch { }
       if (active) timer = setTimeout(tick, POLL_INTERVAL_MS);
     };
     tick();
@@ -303,9 +305,9 @@ export default function Home() {
     };
   }, [sessionId, phase]);
 
-  async function handleReady(lat: number, lng: number) {
+  async function handleReady(lat: number, lng: number, mood: string) {
     setMyLocation({ lat, lng });
-    await join(sessionId, lat, lng);
+    await join(sessionId, lat, lng, mood);
     setPhase("live");
   }
 
@@ -357,10 +359,12 @@ export default function Home() {
           messages={messages}
           connected={conn.kind === "connected"}
           videoBusy={video !== "none"}
+          strangerTyping={strangerTyping}
           onSend={(text) => {
             peerRef.current?.sendChat(text);
             addMessage(true, text);
           }}
+          onTyping={(isTyping) => peerRef.current?.sendTyping(isTyping)}
           onStartVideo={startVideoRequest}
           onEnd={endConnection}
         />

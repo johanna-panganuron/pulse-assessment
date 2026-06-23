@@ -23,7 +23,8 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "invalid body" }, { status: 400 });
   }
 
-  const { id, lat, lng } = (body ?? {}) as Record<string, unknown>;
+  const { id, lat, lng, mood } = (body ?? {}) as Record<string, unknown>;
+  const moodStr = typeof mood === "string" && mood.length <= 50 ? mood : "Just saying hi";
 
   if (typeof id !== "string" || id.length < 8 || id.length > 64) {
     return Response.json({ error: "invalid id" }, { status: 400 });
@@ -47,6 +48,7 @@ export async function POST(request: NextRequest) {
       lat: offset.lat,
       lng: offset.lng,
       busy: false,
+      mood: moodStr,
       lastSeen: new Date(),
     },
     update: {

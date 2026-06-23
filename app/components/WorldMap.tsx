@@ -87,8 +87,8 @@ export default function WorldMap({
       if (!meMarkerRef.current) {
         const el = document.createElement("div");
         el.className = "pulse-me";
-        el.title = "You are here";
-        el.innerHTML = `<span class="pulse-me-label">Me</span>📍`;
+        // el.title = "You are here";
+        el.innerHTML = `<span class="pulse-me-label">Me</span>`;
         meMarkerRef.current = new maplibre.Marker({ element: el, anchor: "bottom" })
           .setLngLat([me.lng, me.lat])
           .addTo(map);
@@ -117,10 +117,34 @@ export default function WorldMap({
         seen.add(peer.id);
         let marker = markers.get(peer.id);
         if (!marker) {
-          const el = document.createElement("button");
-          el.className = "pulse-dot";
-          el.style.background = dotColor(peer.id);
-          el.title = "Tap to connect";
+          const el = document.createElement("div");
+          el.className = "pulse-dot-wrapper";
+          el.title = peer.mood ? `${peer.mood} — Tap to connect` : "Tap to connect";
+
+          const dot = document.createElement("button");
+          dot.className = "pulse-dot";
+          dot.style.background = dotColor(peer.id);
+
+          const badge = document.createElement("span");
+          badge.className = "pulse-mood-badge";
+          const moodMap: Record<string, string> = {
+            "Just saying hi": "👋",
+            "Want to talk": "💬",
+            "Listening to music": "🎵",
+            "Can't sleep": "🌙",
+            "Having coffee": "☕",
+            "Taking a break": "🎮",
+            "Deep in thought": "🧠",
+            "Feeling happy": "😊",
+          };
+          badge.textContent = peer.mood ? (moodMap[peer.mood] ?? "👋") : "👋";
+
+          el.appendChild(dot);
+          el.appendChild(badge);
+          el.addEventListener("click", (e) => {
+            e.stopPropagation();
+            if (canConnectRef.current) onPeerClickRef.current(peer.id);
+          });
           el.addEventListener("click", (e) => {
             e.stopPropagation();
             if (canConnectRef.current) onPeerClickRef.current(peer.id);
@@ -131,6 +155,20 @@ export default function WorldMap({
           markers.set(peer.id, marker);
         }
         marker.getElement().style.opacity = peer.busy ? "0.35" : "1";
+        const existingBadge = marker.getElement().querySelector(".pulse-mood-badge");
+        if (existingBadge) {
+          const moodMap: Record<string, string> = {
+            "Just saying hi": "👋",
+            "Want to talk": "💬",
+            "Listening to music": "🎵",
+            "Can't sleep": "🌙",
+            "Having coffee": "☕",
+            "Taking a break": "🎮",
+            "Deep in thought": "🧠",
+            "Feeling happy": "😊",
+          };
+          existingBadge.textContent = peer.mood ? (moodMap[peer.mood] ?? "👋") : "👋";
+        }
       }
 
       for (const [id, marker] of markers) {

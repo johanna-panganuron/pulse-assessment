@@ -15,8 +15,8 @@ export interface PeerDot {
   lat: number;
   lng: number;
   busy: boolean;
+  mood?: string;
 }
-
 export interface SignalMsg {
   id: string;
   fromId: string;

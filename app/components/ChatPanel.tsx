@@ -12,14 +12,18 @@ export default function ChatPanel({
   messages,
   connected,
   videoBusy,
+  strangerTyping,
   onSend,
+  onTyping,
   onStartVideo,
   onEnd,
 }: {
   messages: ChatMessage[];
   connected: boolean;
   videoBusy: boolean;
+  strangerTyping: boolean;
   onSend: (text: string) => void;
+  onTyping: (isTyping: boolean) => void;
   onStartVideo: () => void;
   onEnd: () => void;
 }) {
@@ -140,15 +144,15 @@ export default function ChatPanel({
               style={
                 m.mine
                   ? {
-                      background: "linear-gradient(135deg, #34d399, #10b981)",
-                      color: "#052e16",
-                      borderBottomRightRadius: "4px",
-                    }
+                    background: "linear-gradient(135deg, #34d399, #10b981)",
+                    color: "#052e16",
+                    borderBottomRightRadius: "4px",
+                  }
                   : {
-                      background: "rgba(255,255,255,0.07)",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                      borderBottomLeftRadius: "4px",
-                    }
+                    background: "rgba(255,255,255,0.07)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    borderBottomLeftRadius: "4px",
+                  }
               }
             >
               {m.text}
@@ -159,6 +163,18 @@ export default function ChatPanel({
       </div>
 
       {/* Input */}
+
+      {strangerTyping && (
+        <div className="px-4 pb-1 flex items-center gap-2">
+          <div className="flex gap-1">
+            <span className="h-1.5 w-1.5 rounded-full bg-zinc-400 animate-bounce" style={{ animationDelay: "0ms" }} />
+            <span className="h-1.5 w-1.5 rounded-full bg-zinc-400 animate-bounce" style={{ animationDelay: "150ms" }} />
+            <span className="h-1.5 w-1.5 rounded-full bg-zinc-400 animate-bounce" style={{ animationDelay: "300ms" }} />
+          </div>
+          <span className="text-xs text-zinc-500">Stranger is typing…</span>
+        </div>
+      )}
+
       <form
         onSubmit={submit}
         className="flex gap-2 p-3"
@@ -166,7 +182,11 @@ export default function ChatPanel({
       >
         <input
           value={draft}
-          onChange={(e) => setDraft(e.target.value)}
+          onChange={(e) => {
+            setDraft(e.target.value);
+            onTyping(e.target.value.length > 0);
+          }}
+          onBlur={() => onTyping(false)}
           placeholder={connected ? "Type a message…" : "Connecting…"}
           disabled={!connected}
           className="flex-1 rounded-full px-4 py-2.5 text-sm outline-none disabled:opacity-50"
