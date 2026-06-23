@@ -56,8 +56,23 @@ export default function WorldMap({
 
       map.on("load", () => {
         if (!cancelled) setReady(true);
-      });
 
+        // Auto-rotate the map slowly
+        let rotating = true;
+        const rotate = () => {
+          if (!rotating) return;
+          map.setCenter([
+            (map.getCenter().lng + 0.03) % 360,
+            map.getCenter().lat,
+          ]);
+          requestAnimationFrame(rotate);
+        };
+        rotate();
+
+        // Stop rotating when user interacts
+        map.on("mousedown", () => { rotating = false; });
+        map.on("touchstart", () => { rotating = false; });
+      });
       mapRef.current = map;
     })();
 
@@ -196,7 +211,7 @@ export default function WorldMap({
       )}
 
       <div className="absolute bottom-4 left-4 rounded-full bg-zinc-900/80 px-3 py-1.5 text-xs text-zinc-300 backdrop-blur">
-        {peers.length} online
+        <span className="text-emerald-400 font-semibold">{peers.length}</span> online
       </div>
     </div>
   );

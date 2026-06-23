@@ -57,9 +57,13 @@ export default function Home() {
     setNotice(text);
     window.setTimeout(() => setNotice(null), 3500);
   }
-
   function addMessage(mine: boolean, text: string) {
     setMessages((prev) => [...prev, { id: msgId.current++, mine, text }]);
+  }
+  function addReaction(id: number, reaction: string) {
+    setMessages((prev) =>
+      prev.map((m) => (m.id === id ? { ...m, reaction } : m))
+    );
   }
 
   function teardown(message?: string) {
@@ -81,6 +85,7 @@ export default function Home() {
       },
       onChat: (text) => addMessage(false, text),
       onTyping: (isTyping) => setStrangerTyping(isTyping),
+      onReaction: (id, reaction) => addReaction(id, reaction),
       onControl: (ctrl) => handleControl(ctrl),
       onRemoteStream: (stream) => setRemoteStream(stream),
       onConnectionState: (state) => {
@@ -365,6 +370,10 @@ export default function Home() {
             addMessage(true, text);
           }}
           onTyping={(isTyping) => peerRef.current?.sendTyping(isTyping)}
+          onReaction={(id, reaction) => {
+            addReaction(id, reaction);
+            peerRef.current?.sendReaction(id, reaction);
+          }}
           onStartVideo={startVideoRequest}
           onEnd={endConnection}
         />

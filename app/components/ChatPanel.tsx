@@ -6,6 +6,7 @@ export interface ChatMessage {
   id: number;
   mine: boolean;
   text: string;
+  reaction?: string;
 }
 
 export default function ChatPanel({
@@ -15,6 +16,7 @@ export default function ChatPanel({
   strangerTyping,
   onSend,
   onTyping,
+  onReaction,
   onStartVideo,
   onEnd,
 }: {
@@ -24,11 +26,13 @@ export default function ChatPanel({
   strangerTyping: boolean;
   onSend: (text: string) => void;
   onTyping: (isTyping: boolean) => void;
+  onReaction: (id: number, reaction: string) => void;
   onStartVideo: () => void;
   onEnd: () => void;
 }) {
   const [draft, setDraft] = useState("");
   const [visible, setVisible] = useState(false);
+  const [confirmEnd, setConfirmEnd] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -97,7 +101,7 @@ export default function ChatPanel({
             Video
           </button>
           <button
-            onClick={onEnd}
+            onClick={() => setConfirmEnd(true)}
             className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-200 hover:bg-red-500"
             style={{
               background: "rgba(239,68,68,0.15)",
@@ -208,7 +212,58 @@ export default function ChatPanel({
           Send
         </button>
       </form>
-
+      {confirmEnd && (
+        <div
+          className="absolute inset-0 z-50 flex items-center justify-center"
+          style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)" }}
+        >
+          <div
+            className="mx-4 w-full max-w-xs rounded-3xl p-6 text-center"
+            style={{
+              background: "rgba(24,24,27,0.95)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              boxShadow: "0 25px 50px rgba(0,0,0,0.5)",
+            }}
+          >
+            <div
+              className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full"
+              style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)" }}
+            >
+              <svg className="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <h3 className="text-base font-semibold text-white">End conversation?</h3>
+            <p className="mt-1.5 text-sm text-zinc-400">
+              This will disconnect you from the stranger. This cannot be undone.
+            </p>
+            <div className="mt-5 flex gap-3">
+              <button
+                onClick={() => setConfirmEnd(false)}
+                className="flex-1 rounded-full py-2.5 text-sm font-medium transition-all duration-200"
+                style={{
+                  background: "rgba(255,255,255,0.06)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  color: "#a1a1aa",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => { setConfirmEnd(false); onEnd(); }}
+                className="flex-1 rounded-full py-2.5 text-sm font-semibold transition-all duration-200"
+                style={{
+                  background: "linear-gradient(135deg, #ef4444, #dc2626)",
+                  color: "white",
+                  boxShadow: "0 0 20px rgba(239,68,68,0.3)",
+                }}
+              >
+                End
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <style>{`
         @keyframes fadeSlideIn {
           from { opacity: 0; transform: translateY(8px); }

@@ -12,6 +12,7 @@ interface PeerCallbacks {
   onControl: (ctrl: PeerControl) => void;
   onRemoteStream: (stream: MediaStream | null) => void;
   onConnectionState: (state: RTCPeerConnectionState) => void;
+  onReaction: (id: number, reaction: string) => void;
   onChannelOpen: () => void;
 }
 
@@ -72,121 +73,127 @@ export class PeerSession {
     }
   }
 
-  private wireDataChannel(dc: RTCDataChannel) {
-    dc.onopen = () => this.cb.onChannelOpen();
-    dc.onmessage = (e) => {
-      try {
-        const msg = JSON.parse(e.data as string);
-        if (msg.t === "chat" && typeof msg.text === "string") {
-          this.cb.onChat(msg.text);
-        } else if (msg.t === "ctrl" && typeof msg.ctrl === "string") {
-          this.cb.onControl(msg.ctrl as PeerControl);
-        } else if (msg.t === "typing" && typeof msg.isTyping === "boolean") {
-          this.cb.onTyping(msg.isTyping);
-        }
-      } catch { }
-    };
-  }
+private wireDataChannel(dc: RTCDataChannel) {
+  dc.onopen = () => this.cb.onChannelOpen();
+  dc.onmessage = (e) => {
+    try {
+      const msg = JSON.parse(e.data as string);
+      if (msg.t === "chat" && typeof msg.text === "string") {
+        this.cb.onChat(msg.text);
+      } else if (msg.t === "ctrl" && typeof msg.ctrl === "string") {
+        this.cb.onControl(msg.ctrl as PeerControl);
+      } else if (msg.t === "typing" && typeof msg.isTyping === "boolean") {
+        this.cb.onTyping(msg.isTyping);
+      } else if (msg.t === "reaction" && typeof msg.id === "number" && typeof msg.reaction === "string") {
+        this.cb.onReaction(msg.id, msg.reaction);
+      }
+    } catch { }
+  };
+}
 
   async handleSignal(type: DescType, payload: string) {
-    if (this.closed) return;
-    const data = JSON.parse(payload);
+  if (this.closed) return;
+  const data = JSON.parse(payload);
 
-    if (type === "ice") {
-      if (!this.pc.remoteDescription) {
-        this.pendingCandidates.push(data);
-        return;
-      }
-      try {
-        await this.pc.addIceCandidate(data);
-      } catch { }
+  if (type === "ice") {
+    if (!this.pc.remoteDescription) {
+      this.pendingCandidates.push(data);
       return;
     }
+    try {
+      await this.pc.addIceCandidate(data);
+    } catch { }
+    return;
+  }
 
-    const desc = data as RTCSessionDescriptionInit;
-    const offerCollision =
-      desc.type === "offer" &&
-      (this.makingOffer || this.pc.signalingState !== "stable");
-    this.ignoreOffer = !this.polite && offerCollision;
-    if (this.ignoreOffer) return;
+  const desc = data as RTCSessionDescriptionInit;
+  const offerCollision =
+    desc.type === "offer" &&
+    (this.makingOffer || this.pc.signalingState !== "stable");
+  this.ignoreOffer = !this.polite && offerCollision;
+  if (this.ignoreOffer) return;
 
-    await this.flushPendingCandidates();
-    await this.pc.setRemoteDescription(desc);
-    if (desc.type === "offer") {
-      await this.pc.setLocalDescription();
-      if (this.pc.localDescription) {
-        this.cb.onSignal("answer", JSON.stringify(this.pc.localDescription));
-      }
+  await this.flushPendingCandidates();
+  await this.pc.setRemoteDescription(desc);
+  if (desc.type === "offer") {
+    await this.pc.setLocalDescription();
+    if (this.pc.localDescription) {
+      this.cb.onSignal("answer", JSON.stringify(this.pc.localDescription));
     }
   }
+}
 
   private async flushPendingCandidates() {
-    if (this.pendingCandidates.length === 0) return;
-    const queued = this.pendingCandidates;
-    this.pendingCandidates = [];
-    for (const candidate of queued) {
-      try {
-        await this.pc.addIceCandidate(candidate);
-      } catch { }
-    }
-  }
-
-  sendChat(text: string) {
-    this.safeSend({ t: "chat", text });
-  }
-
-  sendTyping(isTyping: boolean) {
-    this.safeSend({ t: "typing", isTyping });
-  }
-
-  sendControl(ctrl: PeerControl) {
-    this.safeSend({ t: "ctrl", ctrl });
-  }
-
-  private safeSend(obj: unknown) {
-    if (this.dc && this.dc.readyState === "open") {
-      this.dc.send(JSON.stringify(obj));
-    }
-  }
-
-  async startVideo(): Promise<MediaStream> {
-    if (!this.localStream) {
-      this.localStream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true,
-      });
-      for (const track of this.localStream.getTracks()) {
-        this.pc.addTrack(track, this.localStream);
-      }
-    }
-    return this.localStream;
-  }
-
-  stopVideo() {
-    if (this.localStream) {
-      for (const track of this.localStream.getTracks()) track.stop();
-      for (const sender of this.pc.getSenders()) {
-        if (sender.track) {
-          try {
-            this.pc.removeTrack(sender);
-          } catch { }
-        }
-      }
-      this.localStream = null;
-    }
-  }
-
-  close() {
-    if (this.closed) return;
-    this.closed = true;
-    this.stopVideo();
-    if (this.dc) {
-      try {
-        this.dc.close();
-      } catch { }
-    }
+  if (this.pendingCandidates.length === 0) return;
+  const queued = this.pendingCandidates;
+  this.pendingCandidates = [];
+  for (const candidate of queued) {
     try {
-      this.pc.close();
+      await this.pc.addIceCandidate(candidate);
     } catch { }
   }
+}
+
+sendChat(text: string) {
+  this.safeSend({ t: "chat", text });
+}
+
+sendTyping(isTyping: boolean) {
+  this.safeSend({ t: "typing", isTyping });
+}
+
+sendReaction(id: number, reaction: string) {
+  this.safeSend({ t: "reaction", id, reaction });
+}
+
+sendControl(ctrl: PeerControl) {
+  this.safeSend({ t: "ctrl", ctrl });
+}
+
+  private safeSend(obj: unknown) {
+  if (this.dc && this.dc.readyState === "open") {
+    this.dc.send(JSON.stringify(obj));
+  }
+}
+
+  async startVideo(): Promise < MediaStream > {
+  if(!this.localStream) {
+  this.localStream = await navigator.mediaDevices.getUserMedia({
+    video: true,
+    audio: true,
+  });
+  for (const track of this.localStream.getTracks()) {
+    this.pc.addTrack(track, this.localStream);
+  }
+}
+return this.localStream;
+  }
+
+stopVideo() {
+  if (this.localStream) {
+    for (const track of this.localStream.getTracks()) track.stop();
+    for (const sender of this.pc.getSenders()) {
+      if (sender.track) {
+        try {
+          this.pc.removeTrack(sender);
+        } catch { }
+      }
+    }
+    this.localStream = null;
+  }
+}
+
+close() {
+  if (this.closed) return;
+  this.closed = true;
+  this.stopVideo();
+  if (this.dc) {
+    try {
+      this.dc.close();
+    } catch { }
+  }
+  try {
+    this.pc.close();
+  } catch { }
+}
 }
