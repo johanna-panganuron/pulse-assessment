@@ -189,7 +189,7 @@ export default function EntryGate({
           <button
             onClick={enter}
             disabled={status === "locating"}
-className="w-full rounded-full px-10 py-4 font-semibold text-zinc-950 transition-all duration-300 disabled:opacity-60 flex items-center justify-center gap-2 hover:brightness-110 hover:scale-[1.02]"            style={{
+            className="w-full rounded-full px-10 py-4 font-semibold text-zinc-950 transition-all duration-300 disabled:opacity-60 flex items-center justify-center gap-2 hover:brightness-110 hover:scale-[1.02]" style={{
               background: "linear-gradient(135deg, #34d399, #10b981)",
               boxShadow: "none",
             }}
@@ -204,7 +204,6 @@ className="w-full rounded-full px-10 py-4 font-semibold text-zinc-950 transition
               </>
             ) : (
               <>
-                <selectedMood.icon size={18} />
                 Enter Pulse
               </>
             )}
@@ -219,7 +218,7 @@ className="w-full rounded-full px-10 py-4 font-semibold text-zinc-950 transition
         </div>
 
         {/* Features row */}
-        <div className="flex flex-col items-center gap-4">
+        <div className="flex flex-col items-center gap-8">
           <div className="flex items-center gap-6 text-xs text-zinc-500">
             <span className="flex items-center gap-1.5">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />

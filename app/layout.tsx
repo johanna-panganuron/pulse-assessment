@@ -11,6 +11,9 @@ const dmSans = DM_Sans({
 export const metadata: Metadata = {
   title: "Pulse",
   description: "A living globe of anonymous strangers. Tap a dot, start talking.",
+  icons: {
+    icon: "/favicon.png",
+  },
 };
 
 export default function RootLayout({
