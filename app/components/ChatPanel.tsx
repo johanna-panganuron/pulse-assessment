@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { SmilePlus } from "lucide-react";
 
 export interface ChatMessage {
   id: number;
@@ -33,6 +34,7 @@ export default function ChatPanel({
   const [draft, setDraft] = useState("");
   const [visible, setVisible] = useState(false);
   const [confirmEnd, setConfirmEnd] = useState(false);
+  const [activeReaction, setActiveReaction] = useState<number | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -43,11 +45,12 @@ export default function ChatPanel({
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  function submit(e: React.FormEvent) {
+function submit(e: React.FormEvent) {
     e.preventDefault();
     const text = draft.trim();
     if (!text || !connected) return;
     onSend(text);
+    onTyping(false);
     setDraft("");
   }
 
@@ -136,31 +139,72 @@ export default function ChatPanel({
         {messages.map((m, i) => (
           <div
             key={m.id}
-            className={`flex ${m.mine ? "justify-end" : "justify-start"}`}
+            className={`group flex flex-col ${m.mine ? "items-end" : "items-start"}`}
             style={{
               opacity: 1,
               animation: `fadeSlideIn 0.3s ease forwards`,
               animationDelay: `${i * 0.02}s`,
             }}
           >
-            <span
-              className="max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed"
-              style={
-                m.mine
-                  ? {
-                    background: "linear-gradient(135deg, #34d399, #10b981)",
-                    color: "#052e16",
-                    borderBottomRightRadius: "4px",
-                  }
-                  : {
-                    background: "rgba(255,255,255,0.07)",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                    borderBottomLeftRadius: "4px",
-                  }
-              }
-            >
-              {m.text}
-            </span>
+            <div className={`flex items-end gap-2 ${m.mine ? "flex-row-reverse" : "flex-row"}`}>
+              <span
+                className="max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed"
+                style={
+                  m.mine
+                    ? {
+                      background: "linear-gradient(135deg, #34d399, #10b981)",
+                      color: "#052e16",
+                      borderBottomRightRadius: "4px",
+                    }
+                    : {
+                      background: "rgba(255,255,255,0.07)",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                      borderBottomLeftRadius: "4px",
+                    }
+                }
+              >
+                {m.text}
+              </span>
+
+              {/* Reaction picker — shows on hover */}
+              <button
+                onClick={() => setActiveReaction(activeReaction === m.id ? null : m.id)}
+                className="flex items-center gap-0.5 text-zinc-500 hover:text-zinc-300 transition-colors duration-200"
+                title="React"
+              >
+                <SmilePlus size={14} />
+              </button>
+
+              {activeReaction === m.id && (
+                <div
+                  className="flex gap-1 rounded-full px-2 py-1"
+                  style={{ background: "rgba(24,24,27,0.95)", border: "1px solid rgba(255,255,255,0.1)" }}
+                >
+                  {["👍", "❤️", "😂", "😮", "😢"].map((emoji) => (
+                    <button
+                      key={emoji}
+                      onClick={() => { onReaction(m.id, emoji); setActiveReaction(null); }}
+                      className="text-sm hover:scale-125 transition-transform duration-150"
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Show reaction below message */}
+            {m.reaction && (
+              <div
+                className="mt-1 rounded-full px-2 py-0.5 text-sm"
+                style={{
+                  background: "rgba(255,255,255,0.08)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                }}
+              >
+                {m.reaction}
+              </div>
+            )}
           </div>
         ))}
         <div ref={endRef} />
